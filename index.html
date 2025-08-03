@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Letter Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #1a2a6c);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: white;
+            overflow: hidden;
+        }
+
+        .screen {
+            background: rgba(0, 15, 30, 0.85);
+            border-radius: 20px;
+            padding: 30px;
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+            display: none;
+        }
+
+        .screen.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            color: #4fc3f7;
+            background: linear-gradient(to right, #4fc3f7, #ff6b6b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+            color: #4fc3f7;
+        }
+
+        p {
+            font-size: 1.1rem;
+            margin: 10px 0;
+            line-height: 1.6;
+        }
+
+        input, button {
+            width: 100%;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 50px;
+            border: none;
+            font-size: 1.1rem;
+            outline: none;
+        }
+
+        input {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 2px solid #4fc3f7;
+            text-align: center;
+        }
+
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        button {
+            background: linear-gradient(45deg, #2196F3, #21CBF3);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .btn-group button {
+            flex: 1;
+        }
+
+        #game-screen {
+            height: 80vh;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            margin-bottom: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+        }
+
+        .game-header > div {
+            flex: 1;
+            text-align: center;
+            padding: 8px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            background: rgba(0, 30, 60, 0.7);
+            margin: 0 5px;
+            border-radius: 20px;
+        }
+
+        #bubbles-container {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            gap: 15px;
+            transition: top 0.05s linear;
+        }
+
+        .bubble {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #2196F3, #21CBF3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .bubble:nth-child(2n) {
+            animation-delay: 0.5s;
+        }
+
+        .bubble:nth-child(3n) {
+            animation-delay: 1s;
+        }
+
+        .bubble::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 70%);
+            transform: rotate(30deg);
+        }
+
+        .bubble.correct {
+            background: linear-gradient(145deg, #4CAF50, #8BC34A);
+            transform: scale(1.1);
+        }
+
+        .bubble.wrong {
+            background: linear-gradient(145deg, #f44336, #e91e63);
+            animation: shake 0.5s;
+        }
+
+        .bubble.hidden .letter {
+            display: none;
+        }
+
+        .progress-bar {
+            height: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+
+        .progress {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            width: 100%;
+            transition: width 0.1s linear;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 15px;
+        }
+
+        .stat-card h3 {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            color: #4fc3f7;
+        }
+
+        .highlight {
+            color: #FFD700;
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+        
+        .help-content {
+            text-align: left;
+            max-height: 60vh;
+            overflow-y: auto;
+            padding: 15px;
+            background: rgba(0, 30, 60, 0.5);
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+        
+        .help-section {
+            margin-bottom: 20px;
+        }
+        
+        .help-section h3 {
+            color: #4fc3f7;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #4fc3f7;
+            padding-bottom: 5px;
+        }
+        
+        .tip {
+            background: rgba(79, 195, 247, 0.2);
+            border-left: 4px solid #4fc3f7;
+            padding: 10px 15px;
+            margin: 15px 0;
+            border-radius: 0 10px 10px 0;
+        }
+        
+        .tip-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #FFD700;
+            margin-bottom: 5px;
+        }
+        
+        .level-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 10px 0;
+        }
+        
+        .level-card {
+            background: rgba(79, 195, 247, 0.15);
+            padding: 10px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .level-card h4 {
+            color: #FFD700;
+            margin-bottom: 5px;
+        }
+        
+        .bubble-tip {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(145deg, #2196F3, #21CBF3);
+            border-radius: 50%;
+            margin: 0 5px;
+            vertical-align: middle;
+        }
+        
+        .correct-tip {
+            background: linear-gradient(145deg, #4CAF50, #8BC34A);
+        }
+        
+        .wrong-tip {
+            background: linear-gradient(145deg, #f44336, #e91e63);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            20% { transform: translateX(-10px); }
+            40% { transform: translateX(10px); }
+            60% { transform: translateX(-10px); }
+            80% { transform: translateX(10px); }
+            100% { transform: translateX(0); }
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+            100% { transform: translateY(0px); }
+        }
+
+        @media (max-width: 768px) {
+            .screen {
+                padding: 20px;
+                max-width: 95%;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            h2 {
+                font-size: 1.5rem;
+            }
+            
+            .bubble {
+                width: 50px;
+                height: 50px;
+                font-size: 1.5rem;
+            }
+            
+            .btn-group {
+                flex-direction: column;
+            }
+            
+            .game-header > div {
+                font-size: 0.9rem;
+                padding: 5px;
+            }
+            
+            .level-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .bubble {
+                width: 40px;
+                height: 40px;
+                font-size: 1.2rem;
+            }
+            
+            .stats {
+                grid-template-columns: 1fr;
+            }
+            
+            .game-header > div {
+                font-size: 0.8rem;
+            }
+            
+            .game-header {
+                flex-wrap: wrap;
+            }
+            
+            .game-header > div {
+                flex: 1 0 40%;
+                margin: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Start Screen -->
+    <div id="start-screen" class="screen active">
+        <h1>Memory Letter Game</h1>
+        <p>Test your memory skills by tapping letters in alphabetical order before time runs out!</p>
+        <input type="text" id="player-name" placeholder="Enter your name" autocomplete="off">
+        
+        <div class="btn-group">
+            <button id="start-btn">Start Game</button>
+            <button id="help-btn">How to Play</button>
+        </div>
+    </div>
+    
+    <!-- Help Screen -->
+    <div id="help-screen" class="screen">
+        <h1>How to Play</h1>
+        
+        <div class="help-content">
+            <div class="help-section">
+                <h3>Game Objective</h3>
+                <p>Memorize letters shown at the start of each round, then tap them in alphabetical order as they fall down the screen.</p>
+            </div>
+            
+            <div class="help-section">
+                <h3>Scoring System</h3>
+                <ul>
+                    <li>1 point for each correctly tapped letter</li>
+                    <li>Points are earned immediately when you tap a correct letter</li>
+                    <li>Complete rounds quickly for bonus points</li>
+                </ul>
+            </div>
+            
+            <div class="help-section">
+                <h3>Game Structure</h3>
+                <p>The game has 5 levels with increasing difficulty:</p>
+                <div class="level-grid">
+                    <div class="level-card">
+                        <h4>Level 1</h4>
+                        <p>6 letters</p>
+                    </div>
+                    <div class="level-card">
+                        <h4>Level 2</h4>
+                        <p>7 letters</p>
+                    </div>
+                    <div class="level-card">
+                        <h4>Level 3</h4>
+                        <p>8 letters</p>
+                    </div>
+                    <div class="level-card">
+                        <h4>Level 4</h4>
+                        <p>9 letters</p>
+                    </div>
+                    <div class="level-card">
+                        <h4>Level 5</h4>
+                        <p>10 letters</p>
+                    </div>
+                </div>
+                <p>Each level has 4 rounds with decreasing time limits:</p>
+                <ul>
+                    <li>Round 1: 10 seconds</li>
+                    <li>Round 2: 8 seconds</li>
+                    <li>Round 3: 7 seconds</li>
+                    <li>Round 4: 6 seconds</li>
+                </ul>
+            </div>
+            
+            <div class="help-section">
+                <h3>Game Elements</h3>
+                <p><span class="bubble-tip"></span> Normal bubble - Tap to reveal letter</p>
+                <p><span class="bubble-tip correct-tip"></span> Correct letter - Stays visible</p>
+                <p><span class="bubble-tip wrong-tip"></span> Wrong letter - Hides again after 0.5s</p>
+            </div>
+            
+            <div class="help-section">
+                <h3>Pro Tips</h3>
+                <div class="tip">
+                    <div class="tip-title">
+                        <strong>Focus on Letter Range</strong>
+                    </div>
+                    <p>When letters appear, quickly note the lowest and highest letter to know the alphabetical range.</p>
+                </div>
+                
+                <div class="tip">
+                    <div class="tip-title">
+                        <strong>Tap Rhythmically</strong>
+                    </div>
+                    <p>Develop a steady tapping rhythm to maintain speed without mistakes.</p>
+                </div>
+                
+                <div class="tip">
+                    <div class="tip-title">
+                        <strong>Track Movement</strong>
+                    </div>
+                    <p>Follow the bubbles as they descend to maintain spatial awareness.</p>
+                </div>
+                
+                <div class="tip">
+                    <div class="tip-title">
+                        <strong>Alphabet Practice</strong>
+                    </div>
+                    <p>Practice saying the alphabet quickly to improve your recall speed.</p>
+                </div>
+            </div>
+        </div>
+        
+        <button id="back-btn">Back to Game</button>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen" class="screen">
+        <div class="game-header">
+            <div>L<span id="level-display">1</span></div>
+            <div>R<span id="round-display">1</span></div>
+            <div>Time: <span id="timer">7.0</span>s</div>
+            <div>Score: <span id="score-display">0</span></div>
+        </div>
+        
+        <div id="bubbles-container"></div>
+        <div class="progress-bar">
+            <div class="progress" id="progress-bar"></div>
+        </div>
+    </div>
+
+    <!-- Round Complete Screen -->
+    <div id="round-complete-screen" class="screen">
+        <h1>Round Complete!</h1>
+        <p>Level: <span class="highlight"><span id="completed-level">1</span></span></p>
+        <p>Round: <span class="highlight"><span id="completed-round">1</span></span></p>
+        <p>You scored <span class="highlight"><span id="round-score">0</span></span> points</p>
+        <p>Total Score: <span class="highlight"><span id="total-score">0</span></span></p>
+        <button id="next-round-btn">Next Round</button>
+    </div>
+
+    <!-- Level Complete Screen -->
+    <div id="level-complete-screen" class="screen">
+        <h1>Level <span id="completed-level-num">1</span> Complete!</h1>
+        <p>You scored <span class="highlight"><span id="level-score">0</span></span> points this level</p>
+        <p>Total Score: <span class="highlight"><span id="total-score-level">0</span></span></p>
+        <button id="next-level-btn">Play Level <span id="next-level">2</span></button>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="game-over-screen" class="screen">
+        <h1>Game Over!</h1>
+        <p>Total Score: <span class="highlight" id="final-score">0</span></p>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <h3>Your Best</h3>
+                <p><span class="highlight" id="player-best">0</span></p>
+            </div>
+            <div class="stat-card">
+                <h3>All-Time Best</h3>
+                <p><span class="highlight" id="all-time-best">0</span></p>
+            </div>
+        </div>
+        
+        <div class="btn-group">
+            <button id="restart-btn">Play Again</button>
+            <button id="menu-btn">Main Menu</button>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const screens = {
+            start: document.getElementById('start-screen'),
+            help: document.getElementById('help-screen'),
+            game: document.getElementById('game-screen'),
+            roundComplete: document.getElementById('round-complete-screen'),
+            levelComplete: document.getElementById('level-complete-screen'),
+            gameOver: document.getElementById('game-over-screen')
+        };
+
+        const playerNameInput = document.getElementById('player-name');
+        const startBtn = document.getElementById('start-btn');
+        const helpBtn = document.getElementById('help-btn');
+        const backBtn = document.getElementById('back-btn');
+        const bubblesContainer = document.getElementById('bubbles-container');
+        const levelDisplay = document.getElementById('level-display');
+        const roundDisplay = document.getElementById('round-display');
+        const timerDisplay = document.getElementById('timer');
+        const scoreDisplay = document.getElementById('score-display');
+        const progressBar = document.getElementById('progress-bar');
+        const completedLevelDisplay = document.getElementById('completed-level');
+        const completedRoundDisplay = document.getElementById('completed-round');
+        const roundScoreDisplay = document.getElementById('round-score');
+        const totalScoreDisplay = document.getElementById('total-score');
+        const nextRoundBtn = document.getElementById('next-round-btn');
+        const completedLevelNum = document.getElementById('completed-level-num');
+        const levelScoreDisplay = document.getElementById('level-score');
+        const totalScoreLevelDisplay = document.getElementById('total-score-level');
+        const nextLevelBtn = document.getElementById('next-level-btn');
+        const nextLevelDisplay = document.getElementById('next-level');
+        const finalScoreDisplay = document.getElementById('final-score');
+        const playerBestDisplay = document.getElementById('player-best');
+        const allTimeBestDisplay = document.getElementById('all-time-best');
+        const restartBtn = document.getElementById('restart-btn');
+        const menuBtn = document.getElementById('menu-btn');
+
+        // Game state
+        let playerName = '';
+        let currentLevel = 1;
+        let currentRound = 1;
+        let currentScore = 0;
+        let levelScore = 0;
+        let totalScore = 0;
+        let letters = [];
+        let expectedLetter = '';
+        let gameActive = false;
+        let animationId = null;
+        let timerInterval = null;
+        let fallDuration = 10000; // 10 seconds for round 1
+        let lettersCount = 6; // 6 letters for level 1
+
+        // Time per round: R1=10s, R2=8s, R3=7s, R4=6s
+        const roundTimes = [10000, 8000, 7000, 6000];
+
+        // High scores
+        let playerBest = 0;
+        let allTimeBest = 0;
+
+        // Initialize game
+        function init() {
+            loadHighScores();
+            setupEventListeners();
+        }
+
+        // Load high scores from localStorage
+        function loadHighScores() {
+            playerBest = parseInt(localStorage.getItem('playerBest')) || 0;
+            allTimeBest = parseInt(localStorage.getItem('allTimeBest')) || 0;
+        }
+
+        // Save high scores to localStorage
+        function saveHighScores() {
+            localStorage.setItem('playerBest', playerBest);
+            localStorage.setItem('allTimeBest', allTimeBest);
+        }
+
+        // Set up event listeners
+        function setupEventListeners() {
+            startBtn.addEventListener('click', startGame);
+            helpBtn.addEventListener('click', () => showScreen('help'));
+            backBtn.addEventListener('click', () => showScreen('start'));
+            nextRoundBtn.addEventListener('click', startNextRound);
+            nextLevelBtn.addEventListener('click', startNextLevel);
+            restartBtn.addEventListener('click', restartGame);
+            menuBtn.addEventListener('click', returnToMenu);
+        }
+
+        // Start the game
+        function startGame() {
+            playerName = playerNameInput.value.trim();
+            if (!playerName) {
+                alert('Please enter your name');
+                return;
+            }
+            
+            currentLevel = 1;
+            currentRound = 1;
+            currentScore = 0;
+            levelScore = 0;
+            totalScore = 0;
+            lettersCount = 6;
+            
+            showScreen('game');
+            startRound();
+        }
+
+        // Start a new round
+        function startRound() {
+            levelDisplay.textContent = currentLevel;
+            roundDisplay.textContent = currentRound;
+            scoreDisplay.textContent = totalScore;
+            
+            // Set fall duration based on current round
+            fallDuration = roundTimes[currentRound - 1];
+            
+            // Generate consecutive letters
+            const startCharCode = 65 + Math.floor(Math.random() * (26 - lettersCount));
+            letters = [];
+            for (let i = 0; i < lettersCount; i++) {
+                letters.push(String.fromCharCode(startCharCode + i));
+            }
+            
+            // Shuffle the letters
+            shuffleArray(letters);
+            
+            // Create bubbles
+            createBubbles();
+            
+            // Set initial state
+            expectedLetter = String.fromCharCode(Math.min(...letters.map(l => l.charCodeAt(0))));
+            gameActive = false;
+            
+            // Show letters for 7 seconds
+            showLetters();
+            
+            // Start countdown timer
+            startTimer(7);
+            
+            // After 7 seconds, hide letters and start falling
+            setTimeout(() => {
+                hideLetters();
+                startFalling();
+            }, 7000);
+        }
+
+        // Create letter bubbles
+        function createBubbles() {
+            bubblesContainer.innerHTML = '';
+            bubblesContainer.style.top = '50%';
+            
+            letters.forEach(letter => {
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+                bubble.innerHTML = `<div class="letter">${letter}</div>`;
+                bubble.dataset.letter = letter;
+                bubble.addEventListener('click', () => handleBubbleClick(bubble));
+                bubblesContainer.appendChild(bubble);
+            });
+        }
+
+        // Show all letters
+        function showLetters() {
+            const bubbles = document.querySelectorAll('.bubble');
+            bubbles.forEach(bubble => {
+                bubble.classList.remove('hidden');
+            });
+        }
+
+        // Hide all letters
+        function hideLetters() {
+            const bubbles = document.querySelectorAll('.bubble');
+            bubbles.forEach(bubble => {
+                bubble.classList.add('hidden');
+            });
+        }
+
+        // Start falling animation
+        function startFalling() {
+            gameActive = true;
+            
+            // Position bubbles at the top
+            bubblesContainer.style.top = '0';
+            
+            // Start timer for falling
+            startTimer(fallDuration / 1000);
+            
+            // Start animation
+            const startTime = Date.now();
+            const containerHeight = bubblesContainer.offsetHeight;
+            const windowHeight = window.innerHeight;
+            const distanceToFall = windowHeight - containerHeight - 100; // 100px margin
+            
+            function animate() {
+                const elapsedTime = Date.now() - startTime;
+                const progress = Math.min(elapsedTime / fallDuration, 1);
+                const newTop = progress * distanceToFall;
+                
+                bubblesContainer.style.top = `${newTop}px`;
+                progressBar.style.width = `${(1 - progress) * 100}%`;
+                
+                if (progress < 1) {
+                    animationId = requestAnimationFrame(animate);
+                } else {
+                    // Time's up
+                    endRound(false);
+                }
+            }
+            
+            animationId = requestAnimationFrame(animate);
+        }
+
+        // Handle bubble click
+        function handleBubbleClick(bubble) {
+            if (!gameActive) return;
+            
+            const letter = bubble.dataset.letter;
+            
+            // Temporarily show the letter
+            bubble.classList.remove('hidden');
+            
+            if (letter === expectedLetter) {
+                // Correct letter
+                bubble.classList.add('correct');
+                currentScore++;
+                // Update score display immediately
+                scoreDisplay.textContent = totalScore + currentScore;
+                
+                // Get next expected letter
+                const currentCharCode = expectedLetter.charCodeAt(0);
+                expectedLetter = String.fromCharCode(currentCharCode + 1);
+                
+                // Check if all letters are found
+                if (currentScore === lettersCount) {
+                    endRound(true);
+                }
+            } else {
+                // Wrong letter
+                bubble.classList.add('wrong');
+                setTimeout(() => {
+                    bubble.classList.remove('wrong');
+                    bubble.classList.add('hidden');
+                }, 500);
+            }
+        }
+
+        // Start timer
+        function startTimer(duration) {
+            clearInterval(timerInterval);
+            
+            let timeLeft = duration;
+            timerDisplay.textContent = timeLeft.toFixed(1);
+            
+            timerInterval = setInterval(() => {
+                timeLeft -= 0.1;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timerDisplay.textContent = '0.0';
+                } else {
+                    timerDisplay.textContent = timeLeft.toFixed(1);
+                }
+            }, 100);
+        }
+
+        // End the round
+        function endRound(success) {
+            gameActive = false;
+            clearInterval(timerInterval);
+            cancelAnimationFrame(animationId);
+            
+            // Add current round's score to total
+            totalScore += currentScore;
+            
+            if (success) {
+                // Round completed successfully
+                levelScore += currentScore;
+                
+                completedLevelDisplay.textContent = currentLevel;
+                completedRoundDisplay.textContent = currentRound;
+                roundScoreDisplay.textContent = currentScore;
+                totalScoreDisplay.textContent = totalScore;
+                
+                if (currentRound < 4) {
+                    showScreen('roundComplete');
+                } else {
+                    // Level completed
+                    completedLevelNum.textContent = currentLevel;
+                    levelScoreDisplay.textContent = levelScore;
+                    totalScoreLevelDisplay.textContent = totalScore;
+                    showScreen('levelComplete');
+                }
+            } else {
+                // Game over
+                endGame();
+            }
+        }
+
+        // Start the next round
+        function startNextRound() {
+            currentRound++;
+            currentScore = 0;
+            showScreen('game');
+            startRound();
+        }
+
+        // Start the next level
+        function startNextLevel() {
+            currentLevel++;
+            currentRound = 1;
+            currentScore = 0;
+            levelScore = 0;
+            
+            // Adjust game parameters based on level
+            lettersCount = 5 + currentLevel; // 6,7,8,9,10
+            nextLevelDisplay.textContent = currentLevel;
+            
+            showScreen('game');
+            startRound();
+        }
+
+        // End the game
+        function endGame() {
+            // Update high scores
+            if (totalScore > playerBest) {
+                playerBest = totalScore;
+            }
+            
+            if (totalScore > allTimeBest) {
+                allTimeBest = totalScore;
+            }
+            
+            saveHighScores();
+            
+            // Update UI
+            finalScoreDisplay.textContent = totalScore;
+            playerBestDisplay.textContent = playerBest;
+            allTimeBestDisplay.textContent = allTimeBest;
+            
+            showScreen('gameOver');
+        }
+
+        // Restart the game
+        function restartGame() {
+            currentLevel = 1;
+            currentRound = 1;
+            currentScore = 0;
+            levelScore = 0;
+            totalScore = 0;
+            lettersCount = 6;
+            
+            showScreen('game');
+            startRound();
+        }
+
+        // Return to main menu
+        function returnToMenu() {
+            showScreen('start');
+        }
+
+        // Show a specific screen
+        function showScreen(screenName) {
+            // Hide all screens
+            Object.values(screens).forEach(screen => {
+                screen.classList.remove('active');
+            });
+            
+            // Show the requested screen
+            screens[screenName].classList.add('active');
+        }
+
+        // Utility function to shuffle an array
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        // Initialize the game when the page loads
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
